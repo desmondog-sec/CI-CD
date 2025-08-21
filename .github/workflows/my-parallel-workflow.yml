@@ -21,6 +21,8 @@ on:
   #schedule:
   #  - cron: '0 5 * * 1-5'
 
+env:
+  DEBUG: 'true'  
 # Jobs defined in the workflow
 jobs:
   build-and-test-1:
@@ -62,7 +64,7 @@ jobs:
         run: echo "Workflow running successfully"
 
       - name: Debug message
-        if: env.DEBUG == 'true'
+        if: ${{ env.DEBUG == 'true' }}
         run: echo "Debugging is enabled."
 
   post-build-actions:

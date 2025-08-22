@@ -56,7 +56,7 @@ jobs:
 
       - name: Create CloudFormation Stack
         id: create_stack 
-        if : steps.delete_stack.outcome == 'success'
+        if : steps.delete_stack.outcome == 'success' || steps.check_stack.outputs.exists == 'false'
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: uda-artifact

@@ -35,8 +35,6 @@ jobs:
 
       - name: Import stack
         run: terraform import aws_cloudformation_stack.target "${{ inputs.stack_name }}"
-        working-directory: CI-FullstackApp
 
       - name: Destroy stack
         run: terraform destroy -auto-approve -target=aws_cloudformation_stack.target -var="stack_name=${{ inputs.stack_name }}" -lock=false
-        working-directory: CI-FullstackApp

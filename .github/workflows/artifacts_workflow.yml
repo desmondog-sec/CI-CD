@@ -32,8 +32,8 @@ jobs:
         run: | # Run multiple shell commands
           set -euo pipefail                          # Safety flags: -e exit on error, -u fail on unset vars, -o pipefail catches pipe errors
 
-          STACK="${{ inputs.stack_name }}"           # Get the stack name from workflow input
-          REGION="${{ inputs.aws_region || 'us-east-1' }}"  
+          STACK="${{ env.stack_name }}"           # Get the stack name from workflow input
+          REGION="${{ env.aws_region || 'us-east-1' }}"  
           # Get region input, default to us-east-1 if not set
           echo "Looking for stack: $STACK in region $REGION"
 
@@ -50,8 +50,8 @@ jobs:
         if: steps.check_stack.outputs.exists == 'true'
         run: |
           echo "Stack creation failed. Cleaning up..."
-          aws cloudformation delete-stack --stack-name udatest
-          aws cloudformation wait stack-delete-complete --stack-name udatest
+          aws cloudformation delete-stack --stack-name "${{ env.stack_name }}"
+          aws cloudformation wait stack-delete-complete --stack-name "${{ env.stack_name }}"
 
       - name: Create CloudFormation Stack
         id: create_stack 

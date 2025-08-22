@@ -12,6 +12,8 @@ on:
         default: 'error.html'
 env:
   BUCKET_NAME: website-artifacts
+  stack_name : uda-artifact
+  aws_region : us-east-1
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,7 +26,29 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+      
+      - name: Check if CloudFormation stack exists # A descriptive name shown in Actions logs
+        id: check_stack # Assigns an ID so other steps can reference its outputs
+        run: | # Run multiple shell commands
+          set -euo pipefail                          # Safety flags: -e exit on error, -u fail on unset vars, -o pipefail catches pipe errors
+
+          STACK="${{ inputs.stack_name }}"           # Get the stack name from workflow input
+          REGION="${{ inputs.aws_region || 'us-east-1' }}"  
+          # Get region input, default to us-east-1 if not set
+          echo "Looking for stack: $STACK in region $REGION"
+
+          # Call AWS CLI to describe the stack
+          if aws cloudformation describe-stacks --stack-name "$STACK" --region "$REGION" >/dev/null 2>&1; then
+            echo "Stack $STACK exists."
+            echo "exists=true" >> $GITHUB_OUTPUT     # Set an output variable "exists=true"
+          else
+           echo "Stack $STACK does not exist."
+           echo "exists=false" >> $GITHUB_OUTPUT    # Otherwise output "exists=false"
+          fi
+
       - name: Create CloudFormation Stack
+        id: create_stack 
+        if : steps.check_stack.outputs.exists == 'false'
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: uda-artifact
@@ -32,13 +56,22 @@ jobs:
           no-fail-on-empty-changeset: "1"
           
       - name: Upload files to S3 bucket
+        if : steps.create_stack.outcome == 'success'
         run: |
           aws s3 cp ./website/${{ github.event.inputs.index_document }} s3://${{env.BUCKET_NAME}} 
           aws s3 cp ./website/${{ github.event.inputs.error_document }} s3://${{env.BUCKET_NAME}} 
 
       - name: Show S3 bucket website URL
+        if : steps.create_stack.outcome == 'success'
         run: |
           aws cloudformation describe-stacks \
             --stack-name uda-artifact \
             --query 'Stacks[0].Outputs[?OutputKey==`ArtifactBucketWebsiteURL`].OutputValue' \
             --output text
+
+      - name: Delete CloudFormation Stack on Create Failure or if Already Exists
+        if: steps.create_stack.outcome == 'failure' || steps.check_stack.outputs.exists == 'true'
+        run: |
+          echo "Stack creation failed. Cleaning up..."
+          aws cloudformation delete-stack --stack-name udatest
+          aws cloudformation wait stack-delete-complete --stack-name udatest

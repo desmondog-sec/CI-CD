@@ -5,7 +5,7 @@ Resources:
   ArtifactBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: website-artifacts
+      BucketName: website-artifacts-desmond_ogbon-1397
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html

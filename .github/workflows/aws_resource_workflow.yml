@@ -57,7 +57,7 @@ jobs: # Jobs defined in the workflow
           template: udatest.yml
 
       - name: Delete CloudFormation Stack on Create Failure or if Already Exists
-        if: steps.create_stack.outcome == 'failure' && steps.check_stack.outputs.exists == 'true'
+        if: steps.create_stack.outcome == 'failure' || steps.check_stack.outputs.exists == 'true'
         run: |
           echo "Stack creation failed. Cleaning up..."
           aws cloudformation delete-stack --stack-name udatest

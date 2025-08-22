@@ -46,6 +46,13 @@ jobs:
            echo "exists=false" >> $GITHUB_OUTPUT    # Otherwise output "exists=false"
           fi
 
+      - name: Delete CloudFormation Stack on Create Failure or if Already Exists
+        if: steps.check_stack.outputs.exists == 'true'
+        run: |
+          echo "Stack creation failed. Cleaning up..."
+          aws cloudformation delete-stack --stack-name udatest
+          aws cloudformation wait stack-delete-complete --stack-name udatest
+
       - name: Create CloudFormation Stack
         id: create_stack 
         if : steps.check_stack.outputs.exists == 'false'
@@ -68,10 +75,3 @@ jobs:
             --stack-name uda-artifact \
             --query 'Stacks[0].Outputs[?OutputKey==`ArtifactBucketWebsiteURL`].OutputValue' \
             --output text
-
-      - name: Delete CloudFormation Stack on Create Failure or if Already Exists
-        if: steps.create_stack.outcome == 'failure' || steps.check_stack.outputs.exists == 'true'
-        run: |
-          echo "Stack creation failed. Cleaning up..."
-          aws cloudformation delete-stack --stack-name udatest
-          aws cloudformation wait stack-delete-complete --stack-name udatest

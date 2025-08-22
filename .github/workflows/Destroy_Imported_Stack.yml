@@ -31,7 +31,6 @@ jobs:
 
       - name: Initialize Terraform
         run: terraform init
-        working-directory: CI-FullstackApp
 
       - name: Import stack
         run: terraform import aws_cloudformation_stack.target "${{ inputs.stack_name }}"

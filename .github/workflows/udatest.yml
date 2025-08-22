@@ -1,12 +1,11 @@
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: "2010-09-09"
 Description: Create an S3 bucket
 Resources:
   UdaBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: uda-iye-bucket
-
-      WebsiteConfiguration:
+      BucketName: desmond-og-1AM-bucket   
+      WebsiteConfiguration:       
         IndexDocument: index.html
         ErrorDocument: error.html
 Outputs:

@@ -4,8 +4,8 @@ Resources:
   UdaBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: desmond-og-1AM-bucket   
-      WebsiteConfiguration:       
+      BucketName: desmond-og-1am-bucket-udatest-12345
+      WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
 Outputs:

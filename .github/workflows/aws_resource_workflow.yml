@@ -20,8 +20,16 @@ jobs: # Jobs defined in the workflow
         aws-region: us-east-1
 
     - name: Create CloudFormation Stack
+      id: create_stack
       uses: aws-actions/aws-cloudformation-github-deploy@v1
       with:
         name: udatest
         template: udatest.yml
+    
+    - name: Delete CloudFormation Stack on Create Failure
+      if: steps.create_stack.outcome == 'failure'
+      run: |
+        echo "Stack creation failed. Cleaning up..."
+        aws cloudformation delete-stack --stack-name udatest
+        aws cloudformation wait stack-delete-complete --stack-name udatest
         

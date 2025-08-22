@@ -47,6 +47,7 @@ jobs:
           fi
 
       - name: Delete CloudFormation Stack on Create Failure or if Already Exists
+        id: delete_stack
         if: steps.check_stack.outputs.exists == 'true'
         run: |
           echo "Stack creation failed. Cleaning up..."
@@ -55,7 +56,7 @@ jobs:
 
       - name: Create CloudFormation Stack
         id: create_stack 
-        if : steps.check_stack.outputs.exists == 'false'
+        if : steps.delete_stack.outcome == 'success'
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: uda-artifact

@@ -5,31 +5,60 @@ name: create-cloudformation-stack
 on:
   # Manual trigger using the workflow_dispatch event
   workflow_dispatch:
+    inputs:
+      stack_name:
+        description: "CloudFormation stack name to delete"
+        required: true
+        type: string
+      aws_region:
+        description: "AWS region"
+        required: false
+        default: us-east-1
+        type: string
 jobs: # Jobs defined in the workflow
   create-stack:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-   
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Create CloudFormation Stack
-      id: create_stack
-      uses: aws-actions/aws-cloudformation-github-deploy@v1
-      with:
-        name: udatest
-        template: udatest.yml
-    
-    - name: Delete CloudFormation Stack on Create Failure
-      if: steps.create_stack.outcome == 'failure'
-      run: |
-        echo "Stack creation failed. Cleaning up..."
-        aws cloudformation delete-stack --stack-name udatest
-        aws cloudformation wait stack-delete-complete --stack-name udatest
-        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Check if CloudFormation stack exists # A descriptive name shown in Actions logs
+        id: check_stack # Assigns an ID so other steps can reference its outputs
+        run: | # Run multiple shell commands
+          set -euo pipefail                          # Safety flags: -e exit on error, -u fail on unset vars, -o pipefail catches pipe errors
+
+          STACK="${{ inputs.stack_name }}"           # Get the stack name from workflow input
+          REGION="${{ github.event.inputs.aws_region || 'us-east-1' }}"  
+          # Get region input, default to us-east-1 if not set
+          echo "Looking for stack: $STACK in region $REGION"
+
+          # Call AWS CLI to describe the stack
+          if aws cloudformation describe-stacks --stack-name "$STACK" --region "$REGION" >/dev/null 2>&1; then
+            echo "Stack $STACK exists."
+            echo "exists=true" >> $GITHUB_OUTPUT     # Set an output variable "exists=true"
+          else
+           echo "Stack $STACK does not exist."
+           echo "exists=false" >> $GITHUB_OUTPUT    # Otherwise output "exists=false"
+          fi
+
+      - name: Create CloudFormation Stack
+        if : steps.check_stack.outputs.exists == 'false'
+        id: create_stack
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: udatest
+          template: udatest.yml
+
+      - name: Delete CloudFormation Stack on Create Failure
+        if: steps.create_stack.outcome == 'failure'
+        run: |
+          echo "Stack creation failed. Cleaning up..."
+          aws cloudformation delete-stack --stack-name udatest
+          aws cloudformation wait stack-delete-complete --stack-name udatest
